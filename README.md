@@ -1,5 +1,7 @@
 # Image Classifier
 
+![bee_resnet](https://github.com/s4k10503/ImageClassifier/assets/50241623/93661c18-8e14-41ba-9c9a-43d21efcf1dc)
+
 ## Overview
 
 The Image Classifier project is a user-friendly application that allows users to classify images using a pre-trained ONNX model. The application provides a graphical user interface (GUI) built with CustomTKInter, allowing users to select an image, display its thumbnail, and perform classification to predict the label and confidence level.
@@ -35,4 +37,4 @@ Feel free to fork the repository and submit pull requests for any enhancements o
 ## License
 
 This project utilizes the ResNet ONNX model provided by ONNX Model Zoo, which is licensed under the Apache License, Version 2.0. You must comply with the terms of that license when using the model.
-The code and other components of this project are licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+The code and other components of this project are licensed under the MIT License. See the [LICENSE](./LICENSE.txt) file for details.
