@@ -37,8 +37,21 @@ def download_model(model_url, model_name):
     print(f"ONNX model {model_name} saved to {model_path}")
 
 
+def get_github_files(repo, path):
+    url = f"https://api.github.com/repos/{repo}/contents/{path}"
+    response = requests.get(url)
+    files = response.json()
+    return [file['name'] for file in files if file['name'].endswith('.onnx')]
+
+
 if __name__ == "__main__":
     download_json()
 
-    # ResNet V1 models
-    download_model("https://github.com/onnx/models/raw/main/vision/classification/resnet/model/resnet18-v1-7.onnx", "resnet18-v1-7.onnx")
+    repo = "onnx/models"
+    path = "vision/classification/resnet/model"
+    base_url = f"https://github.com/{repo}/raw/main/{path}/"
+
+    onnx_files = get_github_files(repo, path)
+
+    for onnx_file in onnx_files:
+        download_model(f"{base_url}{onnx_file}", onnx_file)
