@@ -1,5 +1,7 @@
 # Image Classifier
 
+![bee_resnet](https://github.com/s4k10503/ImageClassifier/assets/50241623/93661c18-8e14-41ba-9c9a-43d21efcf1dc)
+
 ## Overview
 
 The Image Classifier project is a user-friendly application that allows users to classify images using a pre-trained ONNX model.  
