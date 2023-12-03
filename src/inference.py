@@ -4,99 +4,129 @@ from PIL import Image
 import json
 
 
-def load_labels(json_path):
+class ImageClassifierModel:
     """
-    Load class labels from a JSON file.
+    A model class for image classification using ONNX runtime.
 
-    Args:
-        json_path (str): Path to the JSON file containing class labels.
-
-    Returns:
-        dict: A dictionary mapping class index to class label.
+    This class handles the loading of the model and labels,
+    preprocessing of images, and performing inference using the ONNX model.
     """
 
-    with open(json_path, 'r') as file:
-        labels = json.load(file)
+    def __init__(self):
+        """
+        Initialize the ImageClassifierModel instance.
+        """
 
-    return {int(idx): label[1] for idx, label in labels.items()}
+        self.sess = None
+        self.input_name = None
+        self.class_labels = None
 
+    def load_model(self, model_path: str, labels_path: str):
+        """
+        Load the ONNX model and class labels.
 
-def preprocess_image(image_path):
-    """
-    Preprocess an image for inference.
+        Args:
+            model_path (str): Path to the ONNX model file.
+            labels_path (str): Path to the JSON file containing class labels.
+        """
 
-    Args:
-        image_path (str): Path to the image file.
+        self.sess, self.input_name = self.initialize_onnx_model(model_path)
+        self.class_labels = self.load_labels(labels_path)
 
-    Returns:
-        numpy.ndarray: Preprocessed image as a NumPy array.
-    """
+    @staticmethod
+    def initialize_onnx_model(model_path):
+        """
+        Initialize an ONNX model for inference.
 
-    image = Image.open(image_path).convert('RGB')
-    image = image.resize((224, 224))
-    image_array = np.array(image).astype('float32')
+        Args:
+            model_path (str): Path to the ONNX model file.
 
-    mean = np.array([0.485, 0.456, 0.406], dtype='float32')
-    std = np.array([0.229, 0.224, 0.225], dtype='float32')
+        Returns:
+            tuple: Inference session and input tensor name.
+        """
 
-    return (image_array / 255 - mean) / std
+        sess = ort.InferenceSession(model_path)
+        input_name = sess.get_inputs()[0].name
+        return sess, input_name
 
+    @staticmethod
+    def load_labels(json_path):
+        """
+        Load class labels from a JSON file.
 
-def softmax(x):
-    """
-    Compute the softmax of an array of values.
+        Args:
+            json_path (str): Path to the JSON file containing class labels.
 
-    Args:
-        x (numpy.ndarray): Input array of values.
+        Returns:
+            dict: A dictionary mapping class index to class label.
+        """
 
-    Returns:
-        numpy.ndarray: Softmax probabilities.
-    """
+        with open(json_path, 'r') as file:
+            labels = json.load(file)
+        return {int(idx): label for idx, label in labels.items()}
 
-    exp_x = np.exp(x - np.max(x))
+    @staticmethod
+    def preprocess_image(image_path):
+        """
+        Preprocess an image for inference.
 
-    return exp_x / exp_x.sum(axis=1, keepdims=True)
+        Args:
+            image_path (str): Path to the image file.
 
+        Returns:
+            numpy.ndarray: Preprocessed image as a NumPy array.
+        """
 
-def perform_inference(image_path, sess, input_name, class_labels):
-    """
-    Perform inference on an image using an ONNX model.
+        image = Image.open(image_path).convert('RGB')
+        image = image.resize((224, 224))
+        image_array = np.array(image).astype('float32')
+        mean = np.array([0.485, 0.456, 0.406], dtype='float32')
+        std = np.array([0.229, 0.224, 0.225], dtype='float32')
+        return (image_array / 255 - mean) / std
 
-    Args:
-        image_path (str): Path to the image file.
-        sess (onnxruntime.InferenceSession): ONNX model inference session.
-        input_name (str): Name of the input tensor.
-        class_labels (dict): Dictionary mapping class index to class label.
+    @staticmethod
+    def softmax(x):
+        """
+        Compute the softmax of an array of values.
 
-    Returns:
-        tuple: Predicted label and confidence as a tuple.
-    """
+        Args:
+            x (numpy.ndarray): Input array of values.
 
-    input_data = preprocess_image(image_path).transpose((2, 0, 1))
-    input_data = np.expand_dims(input_data, axis=0)
+        Returns:
+            numpy.ndarray: Softmax probabilities.
+        """
 
-    result = sess.run(None, {input_name: input_data})
-    result_probabilities = softmax(result[0])
-    predicted_index = np.argmax(result_probabilities)
+        exp_x = np.exp(x - np.max(x))
+        return exp_x / exp_x.sum(axis=1, keepdims=True)
 
-    predicted_label = class_labels[predicted_index]
-    confidence = result_probabilities[0][predicted_index] * 100
+    def perform_inference(self, image_path):
+        """
+        Perform inference on an image using an ONNX model.
 
-    return predicted_label, confidence
+        Args:
+            image_path (str): Path to the image file.
+            sess (onnxruntime.InferenceSession): ONNX model inference session.
+            input_name (str): Name of the input tensor.
+            class_labels (dict): Dictionary mapping class index to class label.
 
+        Returns:
+            tuple: Predicted label and confidence as a tuple.
+        """
 
-def initialize_onnx_model(model_path):
-    """
-    Initialize an ONNX model for inference.
+        if not self.sess or not self.class_labels:
+            raise ValueError("Model session is not initialized.")
 
-    Args:
-        model_path (str): Path to the ONNX model file.
+        # Preprpcess
+        input_data = self.preprocess_image(image_path).transpose((2, 0, 1))
+        input_data = np.expand_dims(input_data, axis=0)
 
-    Returns:
-        tuple: Inference session and input tensor name.
-    """
+        # Inference
+        result = self.sess.run(None, {self.input_name: input_data})
 
-    sess = ort.InferenceSession(model_path)
-    input_name = sess.get_inputs()[0].name
+        # Postprpcess
+        result_probabilities = self.softmax(result[0])
+        predicted_index = np.argmax(result_probabilities)
+        predicted_label = self.class_labels[predicted_index][1]
+        confidence = result_probabilities[0][predicted_index] * 100
 
-    return sess, input_name
+        return predicted_label, confidence
