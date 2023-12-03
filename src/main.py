@@ -6,7 +6,7 @@ from inference import ImageClassifierModel
 
 class ImageClassifierPresenter:
     """
-    Presenter class in the MVC architecture for an image classifier app.
+    Presenter class in the MVP architecture for an image classifier app.
 
     It handles the interactions between the view and the model.
     """
